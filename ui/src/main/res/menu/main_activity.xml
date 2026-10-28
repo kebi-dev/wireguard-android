@@ -11,4 +11,9 @@
         android:orderInCategory="1000"
         android:title="@string/settings"
         app:showAsAction="always" />
+    <item
+        android:id="@+id/menu_next"
+        android:orderInCategory="2000"
+        android:title="@string/next"
+        app:showAsAction="always" />
 </menu>
