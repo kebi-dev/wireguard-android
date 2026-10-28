@@ -19,6 +19,10 @@
         <variable
             name="appData"
             type="com.wireguard.android.databinding.ObservableKeyedArrayList&lt;String, ApplicationData&gt;" />
+
+        <variable
+            name="loading"
+            type="androidx.databinding.ObservableBoolean" />
     </data>
 
     <LinearLayout
@@ -43,6 +47,26 @@
                 android:text="@string/include_in_tunnel" />
         </com.google.android.material.tabs.TabLayout>
 
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/search_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
+            android:hint="@string/search_applications_hint"
+            app:endIconMode="clear_text"
+            app:startIconDrawable="@drawable/ic_search">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/search_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionSearch|flagNoExtractUi"
+                android:inputType="text|textNoSuggestions"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -54,7 +78,18 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:indeterminate="true"
-                android:visibility="@{appData.isEmpty() ? View.VISIBLE : View.GONE}"
+                android:visibility="@{loading ? View.VISIBLE : View.GONE}"
+                tools:visibility="gone" />
+
+            <TextView
+                android:id="@+id/no_results"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:padding="16dp"
+                android:text="@string/search_applications_no_results"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
+                android:visibility="@{!loading &amp;&amp; appData.isEmpty() ? View.VISIBLE : View.GONE}"
                 tools:visibility="gone" />
 
             <androidx.recyclerview.widget.RecyclerView

@@ -14,7 +14,9 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.widget.doAfterTextChanged
 import androidx.databinding.Observable
+import androidx.databinding.ObservableBoolean
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.setFragmentResult
 import androidx.lifecycle.lifecycleScope
@@ -32,6 +34,9 @@ import kotlinx.coroutines.withContext
 
 class AppListDialogFragment : DialogFragment() {
     private val appData = ObservableKeyedArrayList<String, ApplicationData>()
+    private var allAppData = emptyList<ApplicationData>()
+    private val isLoading = ObservableBoolean(true)
+    private var searchQuery = ""
     private var currentlySelectedApps = emptyList<String>()
     private var initiallyExcluded = false
     private var button: Button? = null
@@ -61,8 +66,9 @@ class AppListDialogFragment : DialogFragment() {
                 }
                 applicationData.sortWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
                 withContext(Dispatchers.Main.immediate) {
-                    appData.clear()
-                    appData.addAll(applicationData)
+                    allAppData = applicationData
+                    isLoading.set(false)
+                    applyFilter()
                     setButtonText()
                 }
             } catch (e: Throwable) {
@@ -91,8 +97,18 @@ class AppListDialogFragment : DialogFragment() {
         }
     }
 
+    private fun applyFilter() {
+        val query = searchQuery.trim()
+        val filtered = if (query.isEmpty())
+            allAppData
+        else
+            allAppData.filter { it.name.contains(query, ignoreCase = true) || it.packageName.contains(query, ignoreCase = true) }
+        appData.clear()
+        appData.addAll(filtered)
+    }
+
     private fun setButtonText() {
-        val numSelected = appData.count { it.isSelected }
+        val numSelected = allAppData.count { it.isSelected }
         button?.text = if (numSelected == 0)
             getString(R.string.use_all_applications)
         else when (tabs?.selectedTabPosition) {
@@ -119,14 +135,20 @@ class AppListDialogFragment : DialogFragment() {
         alertDialogBuilder.setPositiveButton(" ") { _, _ -> setSelectionAndDismiss() }
         alertDialogBuilder.setNegativeButton(R.string.cancel) { dialog, _ -> dialog.dismiss() }
         alertDialogBuilder.setNeutralButton(R.string.toggle_all) { _, _ -> }
+        binding.searchText.doAfterTextChanged {
+            searchQuery = it?.toString() ?: ""
+            applyFilter()
+        }
         binding.fragment = this
         binding.appData = appData
+        binding.loading = isLoading
         loadData()
         val dialog = alertDialogBuilder.create()
         dialog.setOnShowListener {
             button = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
             setButtonText()
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener { _ ->
+                // Only toggle the apps that match the current search, if any.
                 val selectAll = appData.none { it.isSelected }
                 appData.forEach {
                     it.isSelected = selectAll
@@ -138,7 +160,7 @@ class AppListDialogFragment : DialogFragment() {
 
     private fun setSelectionAndDismiss() {
         val selectedApps: MutableList<String> = ArrayList()
-        for (data in appData) {
+        for (data in allAppData) {
             if (data.isSelected) {
                 selectedApps.add(data.packageName)
             }
